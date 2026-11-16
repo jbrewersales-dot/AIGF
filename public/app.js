@@ -3,6 +3,8 @@ const HISTORY_KEY = "aigf.history";
 const PHOTO_KEY = "aigf.photo";
 const VOICE_KEY = "aigf.voice";
 const PHOTO_MAX_SIDE = 1000;
+const CLIP_MAX_BYTES = 60 * 1024 * 1024;
+const CLIP_NAMES = ["idle", "talk"];
 
 const $ = (id) => document.getElementById(id);
 const setupScreen = $("setup");
@@ -34,6 +36,67 @@ let history = load(HISTORY_KEY, []);
 let photo = load(PHOTO_KEY, null);
 let voiceOn = load(VOICE_KEY, false);
 let busy = false;
+let speaking = false;
+const clips = { idle: null, talk: null }; // object URLs for her video clips
+
+// Video clips are too big for localStorage, so they live in the browser's IndexedDB.
+function clipStore(mode) {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open("aigf", 1);
+    open.onupgradeneeded = () => open.result.createObjectStore("clips");
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => resolve(open.result.transaction("clips", mode).objectStore("clips"));
+  });
+}
+
+function clipRequest(mode, run) {
+  return clipStore(mode).then(
+    (store) =>
+      new Promise((resolve, reject) => {
+        const request = run(store);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      }),
+  );
+}
+
+function setClip(name, blob) {
+  if (clips[name]) URL.revokeObjectURL(clips[name]);
+  clips[name] = blob ? URL.createObjectURL(blob) : null;
+}
+
+async function loadClips() {
+  for (const name of CLIP_NAMES) {
+    try {
+      setClip(name, await clipRequest("readonly", (store) => store.get(name)));
+    } catch {
+      // Storage unavailable: she just shows her picture instead.
+    }
+  }
+  updateStage();
+}
+
+// Decide what the big portrait shows: a video clip if she has one, otherwise her picture.
+function updateStage() {
+  const stage = $("stage");
+  const video = $("stage-video");
+  const active = speaking || busy;
+  const clip = (active && clips.talk) || clips.idle || (active ? null : clips.talk);
+  stage.hidden = !photo && !clip;
+  stage.classList.toggle("speaking", speaking);
+  stage.classList.toggle("typing", busy && !speaking);
+  $("stage-img").hidden = Boolean(clip);
+  video.hidden = !clip;
+  if (clip && video.dataset.clip !== clip) {
+    video.dataset.clip = clip;
+    video.src = clip;
+    video.play().catch(() => {});
+  } else if (!clip && video.dataset.clip) {
+    delete video.dataset.clip;
+    video.removeAttribute("src");
+    video.load();
+  }
+}
 
 // Shrink the chosen picture so it fits in browser storage, and return it as a data URL.
 async function shrinkPhoto(file) {
@@ -51,8 +114,8 @@ function renderAvatar() {
   avatar.classList.toggle("has-photo", Boolean(photo));
   avatar.style.backgroundImage = photo ? `url("${photo}")` : "";
   avatar.textContent = herName().charAt(0).toUpperCase();
-  $("stage").hidden = !photo;
   if (photo) $("stage-img").src = photo;
+  updateStage();
 }
 
 function renderVoiceButton() {
@@ -78,8 +141,14 @@ function speak(text) {
   const voice = pickVoice();
   if (voice) utterance.voice = voice;
   utterance.pitch = 1.1;
-  utterance.onstart = () => $("stage").classList.add("speaking");
-  utterance.onend = utterance.onerror = () => $("stage").classList.remove("speaking");
+  utterance.onstart = () => {
+    speaking = true;
+    updateStage();
+  };
+  utterance.onend = utterance.onerror = () => {
+    speaking = false;
+    updateStage();
+  };
   speechSynthesis.speak(utterance);
 }
 
@@ -95,7 +164,10 @@ function showSetup() {
     setupForm.elements.adult.checked = true;
   }
   setupForm.elements.photo.value = "";
+  setupForm.elements.idleClip.value = "";
+  setupForm.elements.talkClip.value = "";
   $("remove-photo").hidden = !photo;
+  $("remove-clips").hidden = !clips.idle && !clips.talk;
   chatScreen.hidden = true;
   setupScreen.hidden = false;
 }
@@ -135,7 +207,7 @@ function setBusy(value) {
   busy = value;
   sendBtn.disabled = value;
   $("status").textContent = value ? "typing..." : "AI companion";
-  $("stage").classList.toggle("typing", value);
+  updateStage();
 }
 
 async function send(text) {
@@ -207,6 +279,21 @@ setupForm.addEventListener("submit", async (event) => {
       return;
     }
   }
+  for (const name of CLIP_NAMES) {
+    const clip = data.get(`${name}Clip`);
+    if (!clip || clip.size === 0) continue;
+    if (clip.size > CLIP_MAX_BYTES) {
+      alert("That video is too big. Use a clip under 60 MB.");
+      return;
+    }
+    try {
+      await clipRequest("readwrite", (store) => store.put(clip, name));
+      setClip(name, clip);
+    } catch {
+      alert("That video couldn't be saved in this browser.");
+      return;
+    }
+  }
   settings = {
     herName: data.get("herName").trim() || "Mia",
     userName: data.get("userName").trim(),
@@ -246,6 +333,15 @@ $("remove-photo").addEventListener("click", () => {
   $("remove-photo").hidden = true;
 });
 
+$("remove-clips").addEventListener("click", async () => {
+  for (const name of CLIP_NAMES) {
+    await clipRequest("readwrite", (store) => store.delete(name)).catch(() => {});
+    setClip(name, null);
+  }
+  $("remove-clips").hidden = true;
+  updateStage();
+});
+
 function openPhoto() {
   if (!photo) return;
   $("photo-large").src = photo;
@@ -272,3 +368,4 @@ $("reset-btn").addEventListener("click", () => {
 
 if (settings) showChat();
 else showSetup();
+loadClips();

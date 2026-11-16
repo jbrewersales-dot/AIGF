@@ -21,6 +21,13 @@
       <input type="file" name="photo" accept="image/*">
     </label>
     <button type="button" id="remove-photo" class="ghost" hidden>Remove her picture</button>
+    <label><span>Her video, relaxed <span class="muted">(optional, a short clip that loops)</span></span>
+      <input type="file" name="idleClip" accept="video/*">
+    </label>
+    <label><span>Her video, talking <span class="muted">(optional, plays while she replies)</span></span>
+      <input type="file" name="talkClip" accept="video/*">
+    </label>
+    <button type="button" id="remove-clips" class="ghost" hidden>Remove her videos</button>
     <label>Your name
       <input name="userName" maxlength="30" placeholder="What should she call you?" autocomplete="off">
     </label>
@@ -59,6 +66,7 @@
 
   <button type="button" id="stage" aria-label="View her picture" hidden>
     <img id="stage-img" alt="">
+    <video id="stage-video" muted loop playsinline hidden></video>
   </button>
 
   <main id="messages" aria-live="polite"></main>

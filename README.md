@@ -19,6 +19,7 @@ A simple chat app with an AI companion. You pick her name and personality, then 
 ## Good to know
 
 - You can give her a picture on the setup screen. It shows above the chat and moves gently. Tap it to see it full size.
+- You can also give her short video clips on the setup screen: one "relaxed" clip that loops, and one "talking" clip that plays while she replies. Make these in any video tool (for example DeeVid's Talking Avatar or image-to-video), download them, and choose the files.
 - Tap "Voice off" to switch her voice on, and she reads her replies out loud (uses your browser's built-in voice).
 - Your chat and her picture are saved only in your own browser. "New chat" erases the chat.
 - She remembers everything in the current chat, nothing from erased ones.
