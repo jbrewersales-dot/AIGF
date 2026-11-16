@@ -1,6 +1,7 @@
 const SETTINGS_KEY = "aigf.settings";
 const HISTORY_KEY = "aigf.history";
 const PHOTO_KEY = "aigf.photo";
+const VOICE_KEY = "aigf.voice";
 const PHOTO_MAX_SIDE = 1000;
 
 const $ = (id) => document.getElementById(id);
@@ -31,6 +32,7 @@ function save(key, value) {
 let settings = load(SETTINGS_KEY, null);
 let history = load(HISTORY_KEY, []);
 let photo = load(PHOTO_KEY, null);
+let voiceOn = load(VOICE_KEY, false);
 let busy = false;
 
 // Shrink the chosen picture so it fits in browser storage, and return it as a data URL.
@@ -49,6 +51,36 @@ function renderAvatar() {
   avatar.classList.toggle("has-photo", Boolean(photo));
   avatar.style.backgroundImage = photo ? `url("${photo}")` : "";
   avatar.textContent = herName().charAt(0).toUpperCase();
+  $("stage").hidden = !photo;
+  if (photo) $("stage-img").src = photo;
+}
+
+function renderVoiceButton() {
+  const btn = $("voice-btn");
+  btn.hidden = !("speechSynthesis" in window);
+  btn.textContent = voiceOn ? "Voice on" : "Voice off";
+  btn.setAttribute("aria-pressed", String(voiceOn));
+}
+
+function pickVoice() {
+  const voices = speechSynthesis.getVoices().filter((v) => v.lang.startsWith("en"));
+  const preferred = /female|samantha|zira|aria|jenny|google us english|karen|moira|tessa/i;
+  return voices.find((v) => preferred.test(v.name)) ?? voices[0] ?? null;
+}
+
+// Read her reply out loud using the browser's built-in voice.
+function speak(text) {
+  if (!voiceOn || !("speechSynthesis" in window)) return;
+  const spoken = text.replace(/\p{Extended_Pictographic}/gu, "").trim();
+  if (!spoken) return;
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(spoken);
+  const voice = pickVoice();
+  if (voice) utterance.voice = voice;
+  utterance.pitch = 1.1;
+  utterance.onstart = () => $("stage").classList.add("speaking");
+  utterance.onend = utterance.onerror = () => $("stage").classList.remove("speaking");
+  speechSynthesis.speak(utterance);
 }
 
 function herName() {
@@ -103,6 +135,7 @@ function setBusy(value) {
   busy = value;
   sendBtn.disabled = value;
   $("status").textContent = value ? "typing..." : "AI companion";
+  $("stage").classList.toggle("typing", value);
 }
 
 async function send(text) {
@@ -141,6 +174,7 @@ async function send(text) {
 
     history.push({ role: "assistant", content: reply });
     save(HISTORY_KEY, history);
+    speak(reply);
   } catch (err) {
     if (reply.trim()) {
       // Connection dropped partway through: keep what she managed to say.
@@ -212,11 +246,21 @@ $("remove-photo").addEventListener("click", () => {
   $("remove-photo").hidden = true;
 });
 
-$("avatar").addEventListener("click", () => {
+function openPhoto() {
   if (!photo) return;
   $("photo-large").src = photo;
   $("photo-view").showModal();
+}
+$("avatar").addEventListener("click", openPhoto);
+$("stage").addEventListener("click", openPhoto);
+
+$("voice-btn").addEventListener("click", () => {
+  voiceOn = !voiceOn;
+  save(VOICE_KEY, voiceOn);
+  if (!voiceOn) speechSynthesis.cancel();
+  renderVoiceButton();
 });
+renderVoiceButton();
 
 $("reset-btn").addEventListener("click", () => {
   if (busy) return;

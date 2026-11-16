@@ -52,9 +52,14 @@
       <strong id="her-name"></strong>
       <span class="muted" id="status">AI companion</span>
     </div>
+    <button id="voice-btn" class="ghost" type="button" aria-pressed="false">Voice off</button>
     <button id="settings-btn" class="ghost" type="button">Settings</button>
     <button id="reset-btn" class="ghost" type="button">New chat</button>
   </header>
+
+  <button type="button" id="stage" aria-label="View her picture" hidden>
+    <img id="stage-img" alt="">
+  </button>
 
   <main id="messages" aria-live="polite"></main>
 
