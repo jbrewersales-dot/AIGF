@@ -1,0 +1,16 @@
+{
+  "name": "aigf",
+  "version": "1.0.0",
+  "description": "AI girlfriend chat app",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0"
+  }
+}

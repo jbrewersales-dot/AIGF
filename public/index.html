@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Girlfriend</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- First-run setup -->
+<section id="setup" class="screen" hidden>
+  <form id="setup-form" class="card">
+    <h1>Meet your AI girlfriend</h1>
+    <p class="muted">She's an AI, not a real person. Chats are saved only in this browser.</p>
+
+    <label>Her name
+      <input name="herName" maxlength="30" placeholder="Mia" autocomplete="off">
+    </label>
+    <label>Your name
+      <input name="userName" maxlength="30" placeholder="What should she call you?" autocomplete="off">
+    </label>
+    <label>Her personality
+      <select name="personality">
+        <option value="sweet">Sweet and caring</option>
+        <option value="playful">Playful and teasing</option>
+        <option value="bubbly">Bubbly and upbeat</option>
+        <option value="calm">Calm, good listener</option>
+        <option value="sassy">Sassy and witty</option>
+      </select>
+    </label>
+    <label><span>About you <span class="muted">(optional)</span></span>
+      <textarea name="about" maxlength="500" rows="2" placeholder="Job, hobbies, anything she should know"></textarea>
+    </label>
+    <label class="check">
+      <input type="checkbox" name="adult" required>
+      <span>I am 18 or older</span>
+    </label>
+    <button type="submit" class="primary">Start chatting</button>
+  </form>
+</section>
+
+<!-- Chat -->
+<section id="chat" class="screen" hidden>
+  <header>
+    <div class="avatar" id="avatar"></div>
+    <div class="who">
+      <strong id="her-name"></strong>
+      <span class="muted" id="status">AI companion</span>
+    </div>
+    <button id="settings-btn" class="ghost" type="button">Settings</button>
+    <button id="reset-btn" class="ghost" type="button">New chat</button>
+  </header>
+
+  <main id="messages" aria-live="polite"></main>
+
+  <form id="composer">
+    <textarea id="input" rows="1" maxlength="4000" placeholder="Say something..." aria-label="Message"></textarea>
+    <button type="submit" class="primary" id="send">Send</button>
+  </form>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>
