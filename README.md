@@ -18,7 +18,8 @@ A simple chat app with an AI companion. You pick her name and personality, then 
 
 ## Good to know
 
-- Your chat is saved only in your own browser. "New chat" erases it.
+- You can give her a picture on the setup screen. Tap her picture in the chat to see it full size.
+- Your chat and her picture are saved only in your own browser. "New chat" erases the chat.
 - She remembers everything in the current chat, nothing from erased ones.
 - She is an AI and will say so if sincerely asked. The chat stays non-explicit, and the app is for adults (18+).
 - Her personality and rules live in `buildSystemPrompt` in `server.js` if you want to change them.

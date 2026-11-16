@@ -1,5 +1,7 @@
 const SETTINGS_KEY = "aigf.settings";
 const HISTORY_KEY = "aigf.history";
+const PHOTO_KEY = "aigf.photo";
+const PHOTO_MAX_SIDE = 1000;
 
 const $ = (id) => document.getElementById(id);
 const setupScreen = $("setup");
@@ -28,7 +30,26 @@ function save(key, value) {
 
 let settings = load(SETTINGS_KEY, null);
 let history = load(HISTORY_KEY, []);
+let photo = load(PHOTO_KEY, null);
 let busy = false;
+
+// Shrink the chosen picture so it fits in browser storage, and return it as a data URL.
+async function shrinkPhoto(file) {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.85);
+}
+
+function renderAvatar() {
+  const avatar = $("avatar");
+  avatar.classList.toggle("has-photo", Boolean(photo));
+  avatar.style.backgroundImage = photo ? `url("${photo}")` : "";
+  avatar.textContent = herName().charAt(0).toUpperCase();
+}
 
 function herName() {
   return settings?.herName || "Mia";
@@ -41,13 +62,15 @@ function showSetup() {
     }
     setupForm.elements.adult.checked = true;
   }
+  setupForm.elements.photo.value = "";
+  $("remove-photo").hidden = !photo;
   chatScreen.hidden = true;
   setupScreen.hidden = false;
 }
 
 function showChat() {
   $("her-name").textContent = herName();
-  $("avatar").textContent = herName().charAt(0).toUpperCase();
+  renderAvatar();
   setupScreen.hidden = true;
   chatScreen.hidden = false;
   renderHistory();
@@ -137,9 +160,19 @@ async function send(text) {
   }
 }
 
-setupForm.addEventListener("submit", (event) => {
+setupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = new FormData(setupForm);
+  const file = data.get("photo");
+  if (file && file.size > 0) {
+    try {
+      photo = await shrinkPhoto(file);
+      save(PHOTO_KEY, photo);
+    } catch {
+      alert("That file couldn't be used as a picture. Try a JPG or PNG.");
+      return;
+    }
+  }
   settings = {
     herName: data.get("herName").trim() || "Mia",
     userName: data.get("userName").trim(),
@@ -172,6 +205,18 @@ input.addEventListener("input", () => {
 });
 
 $("settings-btn").addEventListener("click", showSetup);
+
+$("remove-photo").addEventListener("click", () => {
+  photo = null;
+  save(PHOTO_KEY, null);
+  $("remove-photo").hidden = true;
+});
+
+$("avatar").addEventListener("click", () => {
+  if (!photo) return;
+  $("photo-large").src = photo;
+  $("photo-view").showModal();
+});
 
 $("reset-btn").addEventListener("click", () => {
   if (busy) return;

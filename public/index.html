@@ -17,6 +17,10 @@
     <label>Her name
       <input name="herName" maxlength="30" placeholder="Mia" autocomplete="off">
     </label>
+    <label><span>Her picture <span class="muted">(optional, stays in this browser)</span></span>
+      <input type="file" name="photo" accept="image/*">
+    </label>
+    <button type="button" id="remove-photo" class="ghost" hidden>Remove her picture</button>
     <label>Your name
       <input name="userName" maxlength="30" placeholder="What should she call you?" autocomplete="off">
     </label>
@@ -43,7 +47,7 @@
 <!-- Chat -->
 <section id="chat" class="screen" hidden>
   <header>
-    <div class="avatar" id="avatar"></div>
+    <button type="button" class="avatar" id="avatar" aria-label="View her picture"></button>
     <div class="who">
       <strong id="her-name"></strong>
       <span class="muted" id="status">AI companion</span>
@@ -59,6 +63,11 @@
     <button type="submit" class="primary" id="send">Send</button>
   </form>
 </section>
+
+<dialog id="photo-view">
+  <img id="photo-large" alt="Her picture">
+  <form method="dialog"><button class="primary">Close</button></form>
+</dialog>
 
 <script src="app.js"></script>
 </body>
